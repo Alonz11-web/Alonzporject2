@@ -12,7 +12,7 @@ B = -3921.48  # הטיה (Intercept)
 # טעינת הטבלה המלאה מהרשת
 @st.cache_data
 def load_data():
-    url = "srisyra02/penguin-species-dataset"
+    url = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/penguins.csv"
     data = pd.read_csv(url).dropna(subset=['flipper_length_mm', 'sex', 'body_mass_g'])
     data['sex_val'] = data['sex'].apply(lambda x: 1 if str(x).lower() == 'male' else 0)
     data['sex_hebrew'] = data['sex'].apply(lambda x: 'זכר' if str(x).lower() == 'male' else 'נקבה')
