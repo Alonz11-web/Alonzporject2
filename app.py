@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import os
 
 # הגדרת תצורה של העמוד
 st.set_page_config(page_title="פרויקט 2: מודל חיזוי פינגווינים", page_icon="🐧", layout="wide")
@@ -9,19 +10,25 @@ W1 = 40.221217715430626  # flipper_length_mm
 W2 = 11.231715679835007   # sex (Male=1, Female=0)
 B = -3921.4750170197003   # Intercept
 
-# טעינת הטבלה המלאה וטיפול בטוח בשמות עמודות
+# תפריט העלאת קובץ בסרגל הצד (Sidebar) כדי לאפשר טעינת ה-952 שורות המלאות
+st.sidebar.header("📁 טעינת הדאטה-סט המלא")
+uploaded_file = st.sidebar.file_uploader("העלה את קובץ ה-CSV של הפינגווינים", type=["csv"])
+
 @st.cache_data
-def load_full_dataset():
-    url = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/penguins.csv"
-    data = pd.read_csv(url)
-    
-    # התאמת שמות עמודות (במידה ושם עמודה בטבלה שונה)
-    data = data.rename(columns={
-        'bill_length_mm': 'culmen_length_mm',
-        'bill_depth_mm': 'culmen_depth_mm'
-    })
-    
-    # ניקוי ערכים חסרים
+def load_full_dataset(uploaded_file):
+    # 1. אם העלית קובץ CSV דרך הממשק
+    if uploaded_file is not None:
+        data = pd.read_csv(uploaded_file)
+    # 2. אם הקובץ שמור מקומית באותה תיקייה
+    elif os.path.exists("Penguin Species Prediction Dataset.csv"):
+        data = pd.read_csv("Penguin Species Prediction Dataset.csv")
+    else:
+        # ניסיון טעינה מקישור גיטהאב רשת
+        url = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/penguins.csv"
+        data = pd.read_csv(url)
+        data = data.rename(columns={'bill_length_mm': 'culmen_length_mm', 'bill_depth_mm': 'culmen_depth_mm'})
+
+    # ניקוי ערכים חסרים (מתקבלות 951/952 שורות בדאטה המלא מ-Kaggle)
     data = data.dropna(subset=['flipper_length_mm', 'sex', 'body_mass_g']).reset_index(drop=True)
     
     # התאמת עמודת המין להצגה בעברית וערך נומרי למודל
@@ -31,7 +38,7 @@ def load_full_dataset():
     
     return data
 
-df = load_full_dataset()
+df = load_full_dataset(uploaded_file)
 
 # יצירת לשוניות ניווט
 tab1, tab2, tab3, tab4 = st.tabs([
@@ -103,8 +110,8 @@ with tab3:
     total_rounds = 5
 
     with st.expander("📖 חוקי המשחק"):
-        st.write("""
-        * **כל הסיבובים נדגמים אקראית מתוך הטבלה המלאה!**
+        st.write(f"""
+        * **כל הסיבובים נדגמים אקראית מתוך הטבלה המלאה ({len(df)} שורות)!**
         * **המטרה:** לנחש את משקל הפינגווין האמיתי קרוב יותר מהמודל.
         * **ניקוד:** מי שהיה קרוב יותר מקבל 10 נקודות.
         """)
@@ -164,34 +171,4 @@ with tab3:
                 st.session_state.model_score += 10
                 st.session_state.last_result = "🤖 המודל היה קרוב יותר! (+10 נקודות למודל)"
             else:
-                st.session_state.user_score += 5
-                st.session_state.model_score += 5
-                st.session_state.last_result = "🤝 תיקו! (5 נקודות לשניכם)"
-
-            st.session_state.last_actual = actual
-            st.session_state.last_model_pred = model_pred
-            st.session_state.last_user_guess = user_guess
-
-        if st.session_state.submitted:
-            st.info(st.session_state.last_result)
-            st.write(f"• **משקל אמיתי:** {st.session_state.last_actual} גרם")
-            st.write(f"• **חיזוי המודל:** {st.session_state.last_model_pred:.1f} גרם (שגיאה: {abs(st.session_state.last_model_pred - st.session_state.last_actual):.1f})")
-            st.write(f"• **הניחוש שלך:** {st.session_state.last_user_guess} גרם (שגיאה: {abs(st.session_state.last_user_guess - st.session_state.last_actual):.1f})")
-            
-            if st.button("לסיבוב הבא ➡️"):
-                st.session_state.game_round += 1
-                st.session_state.submitted = False
-                st.session_state.current_sample = df.sample(1).iloc[0]
-                st.rerun()
-                
-        st.divider()
-        st.write(f"📊 **ניקוד מצטבר:** משתמש: **{st.session_state.user_score}** | מודל: **{st.session_state.model_score}**")
-
-# ==========================================
-# לשונית 4: הצגת כל הטבלה המלאה
-# ==========================================
-with tab4:
-    st.header(f"📁 כל הטבלה המלאה ({len(df)} שורות)")
-    st.write("להלן הטבלה המלאה שעל בסיסה אומן המודל והמשחק דוגם נתונים:")
-    display_cols = [c for c in ['species', 'island', 'culmen_length_mm', 'culmen_depth_mm', 'flipper_length_mm', 'sex', 'body_mass_g'] if c in df.columns]
-    st.dataframe(df[display_cols], use_container_width=True)
+                st
