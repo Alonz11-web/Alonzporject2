@@ -4,25 +4,27 @@ import pandas as pd
 # הגדרת תצורה של העמוד
 st.set_page_config(page_title="פרויקט 2: מודל חיזוי פינגווינים", page_icon="🐧", layout="wide")
 
-# מקדמי המודל הליניארי המעודכן בשני מאפיינים
+# מקדמי המודל הליניארי המעודכן בשני מאפיינים (מתוך מחברת הקוד)
 W1 = 40.221217715430626  # flipper_length_mm
 W2 = 11.231715679835007   # sex (Male=1, Female=0)
 B = -3921.4750170197003   # Intercept
 
-# טעינת כל הטבלה המלאה
+# טעינת הטבלה המלאה וטיפול בטוח בשמות עמודות
 @st.cache_data
 def load_full_dataset():
-    url = "https://raw.githubusercontent.com/mcnulty/palmerpenguins/main/palmerpenguins/data/penguins.csv"
-    try:
-        data = pd.read_csv(url)
-    except Exception:
-        url = "https://raw.githubusercontent.com/dataprofessor/data/master/penguins_cleaned.csv"
-        data = pd.read_csv(url)
+    url = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/penguins.csv"
+    data = pd.read_csv(url)
+    
+    # התאמת שמות עמודות (במידה ושם עמודה בטבלה שונה)
+    data = data.rename(columns={
+        'bill_length_mm': 'culmen_length_mm',
+        'bill_depth_mm': 'culmen_depth_mm'
+    })
     
     # ניקוי ערכים חסרים
     data = data.dropna(subset=['flipper_length_mm', 'sex', 'body_mass_g']).reset_index(drop=True)
     
-    # התאמת עמודת המין
+    # התאמת עמודת המין להצגה בעברית וערך נומרי למודל
     data['sex_str'] = data['sex'].astype(str).str.capitalize()
     data['sex_hebrew'] = data['sex_str'].apply(lambda x: 'זכר' if x in ['Male', 'זכר'] else 'נקבה')
     data['sex_val'] = data['sex_str'].apply(lambda x: 1 if x in ['Male', 'זכר'] else 0)
@@ -31,7 +33,7 @@ def load_full_dataset():
 
 df = load_full_dataset()
 
-# יצירת בלשוניות
+# יצירת לשוניות ניווט
 tab1, tab2, tab3, tab4 = st.tabs([
     "🔮 מחשבון חיזוי", 
     "📊 תהליך אימון ו-Loss", 
@@ -82,7 +84,7 @@ with tab2:
     st.table(loss_data)
 
 # ==========================================
-# לשונית 3: משחק נצח את המודל (מתוך כל הטבלה)
+# לשונית 3: משחק נצח את המודל
 # ==========================================
 with tab3:
     st.header("🎮 משחק: נצח את המודל!")
@@ -186,9 +188,10 @@ with tab3:
         st.write(f"📊 **ניקוד מצטבר:** משתמש: **{st.session_state.user_score}** | מודל: **{st.session_state.model_score}**")
 
 # ==========================================
-# לשונית 4: הצגת כל הדאטה המלא (כל הטבלה)
+# לשונית 4: הצגת כל הטבלה המלאה
 # ==========================================
 with tab4:
     st.header(f"📁 כל הטבלה המלאה ({len(df)} שורות)")
     st.write("להלן הטבלה המלאה שעל בסיסה אומן המודל והמשחק דוגם נתונים:")
-    st.dataframe(df[['species', 'island', 'culmen_length_mm', 'culmen_depth_mm', 'flipper_length_mm', 'sex', 'body_mass_g']], use_container_width=True)
+    display_cols = [c for c in ['species', 'island', 'culmen_length_mm', 'culmen_depth_mm', 'flipper_length_mm', 'sex', 'body_mass_g'] if c in df.columns]
+    st.dataframe(df[display_cols], use_container_width=True)
